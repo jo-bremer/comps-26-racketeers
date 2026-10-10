@@ -1,0 +1,5 @@
+# Local model weights and generated inference output
+*.pt
+runs/
+*.log
+*.before-path-fix
