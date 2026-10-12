@@ -80,3 +80,10 @@ venv.bak/
 # .vscode/
 # Temporary file for partial code execution
 tempCodeRunnerFile.py
+
+# Tracknet SDKs
+**/__pycache__/
+/data/*
+/workdirs
+*.pth
+/weights/*.pth
