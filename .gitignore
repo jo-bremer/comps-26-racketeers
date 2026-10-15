@@ -88,3 +88,8 @@ tempCodeRunnerFile.py
 /workdirs
 *.pth
 /weights/*.pth
+
+#Preprocessing
+preprocessing/videos
+preprocessing/videos_out
+preprocessing/out
