@@ -85,6 +85,7 @@ tempCodeRunnerFile.py
 # Tracknet SDKs
 **/__pycache__/
 /data/*
+/benchmark
 /workdirs
 *.pth
 /weights/*.pth
