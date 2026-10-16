@@ -95,7 +95,7 @@ def main():
                 cur_group = ""
                 new_coords = []
                 for coord in coords:
-                    if coord != ",":
+                    if coord != "," and coord != "[" and coord != "]":
                         cur_group += coord
                     else:
                         new_coords.append(cur_group)
