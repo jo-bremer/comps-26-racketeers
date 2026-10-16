@@ -81,3 +81,16 @@ venv.bak/
 # .vscode/
 # Temporary file for partial code execution
 tempCodeRunnerFile.py
+
+# Tracknet SDKs
+**/__pycache__/
+/data/*
+/benchmark
+/workdirs
+*.pth
+/weights/*.pth
+
+#Preprocessing
+preprocessing/videos
+preprocessing/videos_out
+preprocessing/out

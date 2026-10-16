@@ -1,0 +1,5 @@
+{
+    "python.analysis.extraPaths": [
+        "./tracknet/TrackNetV5-SDK"
+    ]
+}
