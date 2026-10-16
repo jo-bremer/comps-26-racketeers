@@ -117,8 +117,8 @@ def main():
                 i += 1
                 
             i = 0
-            #stationary_points = []
-            stationary_ball_points = []
+            #stationary_points = [] all stationary points in a list from the first 10 frames
+            stationary_ball_points = [] #stationary_ball_points each entry is stationary points for one ball (only format difference)
             for stationary_point in stationary_points:
                 current_stationary_point = stationary_points[i]
                 if (math.sqrt(current_stationary_point[0] - stationary_point[0])**2 + 
@@ -129,7 +129,7 @@ def main():
                 
             stationary_balls_points = list(dict.fromkeys(stationary_ball_points))
             
-            reference_center_points = []
+            reference_center_points = [] # each entry is the average of one ball
             for ball_entry in stationary_balls_points:
                 x_sum = 0
                 y_sum = 0
@@ -138,8 +138,24 @@ def main():
                     y_sum += center_point[1]
                 
                 reference_center_points.append([x_sum/len(ball_entry), y_sum/len(ball_entry)])  
-            
-             
+        
+                for row in csv_reader: # Loop through first 10 .csv rows
+                    i=0
+                    for xy in row['xyxy']: #[[x, y, x, y], [x,y,x,y]]
+                        xcoor = 1/2 *xy[0]+1/2 *xy[2] 
+                        ycoor = 1/2 *xy[1]+1/2 *xy[3] 
+                        curr_center = [xcoor,ycoor]
+                        for i in len(reference_center_points):
+                            distance = math.sqrt( (reference_center_points[i][0] - curr_center[0])**2 +(reference_center_points[i][1] - curr_center[1])**2)
+                            if distance <=1:
+                                xy[i] = ""
+                                
+                                i -= i
+                            i += 1
+                        
+
+
+
                      
                 
                     
