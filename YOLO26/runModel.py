@@ -91,8 +91,18 @@ def main():
             if len(row[2]) > 0:
                 for xy in row[2]:
                     coords.append(xy)
+                    
+                cur_group = ""
+                new_coords = []
                 for coord in coords:
-                    print(coords)
+                    if coord != ",":
+                        cur_group += coord
+                    else:
+                        cur_group = ""
+                        new_coords.append(cur_group)
+                        
+                print(new_coords)
+                for coord in new_coords:
                     frame_center_points[i] = [0.5*(coord[0] + coord[2]), 0.5*(coord[1] + coord[3])]
                     i += 1
                     
