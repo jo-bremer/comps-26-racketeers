@@ -100,11 +100,26 @@ def main():
                     else:
                         new_coords.append(cur_group)
                         cur_group = ""
-                print(coords)
-                print(new_coords)
-                for coord in new_coords:
-                    frame_center_points[i] = [0.5*(coord[0] + coord[2]), 0.5*(coord[1] + coord[3])]
-                    i += 1
+
+                filtered_coords = [x for x in new_coords if x != "" and x != " "]
+                filtered_coords = list(map(float, filtered_coords))
+                curr_ball_coords = []
+                final_filtered_coords = [] 
+                print(filtered_coords)       
+                for coord in filtered_coords:
+                    
+                    
+                    curr_ball_coords.append(coord)
+                    print(curr_ball_coords)
+
+                    if len(curr_ball_coords) == 4:
+                        print("here")
+                        final_filtered_coords.append(curr_ball_coords)
+                        curr_ball_coords = []
+
+                #print(final_filtered_coords)
+                for coord in final_filtered_coords:
+                    frame_center_points.append([0.5*(coord[0] + coord[2]), 0.5*(coord[1] + coord[3])]) 
                     
                 center_points.append(frame_center_points)
                 frame_number += 1
@@ -113,6 +128,8 @@ def main():
             stationary_points = []
             for center_point in center_points:
                 current_center_point = center_points[i]
+                print("center point" , center_point)#need fix
+                print("curr center point" , current_center_point)
                 if (math.sqrt(current_center_point[0] - center_point[0])**2 + 
                 (current_center_point[1] - center_point[1])**2 <= 1):
                     stationary_points.append(center_point)
