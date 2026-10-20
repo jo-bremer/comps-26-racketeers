@@ -108,7 +108,6 @@ def main():
                 print(filtered_coords)       
                 for coord in filtered_coords:
                     
-                    
                     curr_ball_coords.append(coord)
                     print(curr_ball_coords)
 
@@ -124,59 +123,82 @@ def main():
                 center_points.append(frame_center_points)
                 frame_number += 1
             
-            i = 0
-            stationary_points = []
-            for center_point in center_points:
-                current_center_point = center_points[i]
-                print("center point" , center_point)#need fix
-                print("curr center point" , current_center_point)
-                if (math.sqrt(current_center_point[0] - center_point[0])**2 + 
-                (current_center_point[1] - center_point[1])**2 <= 1):
-                    stationary_points.append(center_point)
-                    
-                i += 1
-                
-            i = 0
-            #stationary_points = [] all stationary points in a list from the first 10 frames
-            stationary_ball_points = [] #stationary_ball_points each entry is stationary points for one ball (only format difference)
-            for stationary_point in stationary_points:
-                current_stationary_point = stationary_points[i]
-                if (math.sqrt(current_stationary_point[0] - stationary_point[0])**2 + 
-                (current_stationary_point[1] - stationary_point[1])**2 <= 1):
-                    stationary_ball_points.append(stationary_point)
-                    
-                i += 1
-                
-            stationary_balls_points = list(dict.fromkeys(stationary_ball_points))
+        stationary_points = []
+        for i in range(1, len(center_points)):
+            previous_frame = center_points[i-1]
+            current_frame = center_points[i]
+            for current_point in current_frame:
+                for previous_point in previous_frame:
+                        x_diff = current_point[0] - previous_point[0]
+                        y_diff = current_point[1] - previous_point[1]
+                        dis= math.sqrt(x_diff**2 + y_diff**2)
+                        if dis <=1:
+                            stationary_points.append(current_point)
+                            break
+        print(stationary_points)
+
+        i=0
+        stationary_ball_points=[]
+        for stationary_point in stationary_points:
+            current_stationary_point = stationary_points[i]
+            if (math.sqrt(current_stationary_point[0] - stationary_point[0])**2 + 
+            (current_stationary_point[1] - stationary_point[1])**2 <= 1):
+                stationary_ball_points.append(stationary_point)
+            i += 1
+
+
+        ball_centers = []
+        stationary_ball_withID = []
+        for point in stationary_ball_points:
+            ball_id = None
+            for j in range(len(ball_centers)):
+                x_dis = abs(point[0] - ball_centers[j][0])
+                y_dis = abs(point[1] - ball_centers[j][1])
+                distance = math.sqrt(x_dis**2 + y_dis**2)
+                if distance <= 1:
+                    ball_id = j
+            if ball_id is None:
+                ball_id = len(ball_centers)
+                ball_centers.append([point[0], point[1]])
+            stationary_ball_withID.append([ball_id, point[0], point[1]])
+        
+        ball_ids = []
+        avg_stationary_coordinate = []
+        for point in stationary_ball_withID:
+            if point[0] not in ball_ids:
+                ball_ids.append(point[0])
+        for k in ball_ids:
+            x_sum = 0
+            y_sum = 0
+            count = 0
+            for point in stationary_ball_withID:
+                if point[0] == k:
+                    x_sum += point[1]
+                    y_sum += point[2]
+                    count += 1
+            avg_x = x_sum / count
+            avg_y = y_sum / count
+            avg_stationary_coordinate.append([k, avg_x, avg_y])
+        print("avg_stationary_coordinate", avg_stationary_coordinate)
             
-            reference_center_points = [] # each entry is the average of one ball
-            for ball_entry in stationary_balls_points:
-                x_sum = 0
-                y_sum = 0
-                for center_point in ball_entry:
-                    x_sum += center_point[0]
-                    y_sum += center_point[1]
-                
-                reference_center_points.append([x_sum/len(ball_entry), y_sum/len(ball_entry)])  
-                
-                for row in csv_reader: # Loop through first 10 .csv rows
-                    j=0
-                    for xy in row['xyxy']: #[[x, y, x, y], [x,y,x,y]]
-                        xcoor = 1/2 *xy[0]+1/2 *xy[2] 
-                        ycoor = 1/2 *xy[1]+1/2 *xy[3] 
-                        curr_center = [xcoor,ycoor]
-                        for i in len(reference_center_points):
-                            distance = math.sqrt( (reference_center_points[i][0] - curr_center[0])**2 +(reference_center_points[i][1] - curr_center[1])**2)
-                            if distance <= 1:
-                                xy[j] = ""
-                                row['confidence'] = ""
-                                if len(xy) == 0:
-                                    row['visibility'] = 0
-                                j -= i
-                        j += 1
-                with open(output_csv, "w", newline="", encoding="utf-8") as f:
-                        writer = csv.writer(f)
-                        writer.writerows(csv_reader)       
+        for row in csv_reader: # Loop through first 10 .csv rows
+            j=0
+            for xy in row['xyxy']: #[[x, y, x, y], [x,y,x,y]]
+                xcoor = 1/2 *xy[0]+1/2 *xy[2] 
+                ycoor = 1/2 *xy[1]+1/2 *xy[3] 
+                curr_center = [xcoor,ycoor]
+                for i in len(reference_center_points):
+                    distance = math.sqrt( (reference_center_points[i][0] - curr_center[0])**2 +(reference_center_points[i][1] - curr_center[1])**2)
+                    if distance <= 1:
+                        xy[j] = ""
+                        row['confidence'] = ""
+                        if len(xy) == 0:
+                            row['visibility'] = 0
+                        j -= i
+                j += 1
+        with open(output_csv, "w", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                writer.writerows(csv_reader)       
 
                     
             
