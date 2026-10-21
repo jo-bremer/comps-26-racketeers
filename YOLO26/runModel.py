@@ -163,7 +163,7 @@ def main():
             stationary_ball_withID.append([ball_id, point[0], point[1]])
         
         ball_ids = []
-        avg_stationary_coordinate = []
+        avg_stationary_coordinates = []
         for point in stationary_ball_withID:
             if point[0] not in ball_ids:
                 ball_ids.append(point[0])
@@ -178,17 +178,17 @@ def main():
                     count += 1
             avg_x = x_sum / count
             avg_y = y_sum / count
-            avg_stationary_coordinate.append([k, avg_x, avg_y])
-        print("avg_stationary_coordinate", avg_stationary_coordinate)
+            avg_stationary_coordinates.append([k, avg_x, avg_y])
+        print("avg_stationary_coordinate", avg_stationary_coordinates)
             
-        for row in csv_reader: # Loop through first 10 .csv rows
+        for row in csv_reader: # Loop through all .csv rows
             j=0
             for xy in row['xyxy']: #[[x, y, x, y], [x,y,x,y]]
                 xcoor = 1/2 *xy[0]+1/2 *xy[2] 
                 ycoor = 1/2 *xy[1]+1/2 *xy[3] 
                 curr_center = [xcoor,ycoor]
-                for i in len(reference_center_points):
-                    distance = math.sqrt( (reference_center_points[i][0] - curr_center[0])**2 +(reference_center_points[i][1] - curr_center[1])**2)
+                for i in len(avg_stationary_coordinates):
+                    distance = math.sqrt( (avg_stationary_coordinates[i][1] - curr_center[0])**2 +(avg_stationary_coordinates[i][2] - curr_center[1])**2)
                     if distance <= 1:
                         xy[j] = ""
                         row['confidence'] = ""
