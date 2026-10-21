@@ -25,8 +25,7 @@ def split_frames_from_video(video_path, output_path, frame_size=(512, 288), img_
 
 def split_frames_from_videos(videos_path, output_path, frame_size=(512, 288), img_format='jpg'):
     for i, video in tqdm(enumerate(os.scandir(videos_path))):
-        video_output_path = os.path.join(output_path, str(i))
-        print(video)
+        video_output_path = os.path.join(output_path, "_"+os.path.basename(video))
         split_frames_from_video(video, video_output_path, frame_size=frame_size)
 
 def main():
