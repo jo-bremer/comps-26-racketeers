@@ -4,6 +4,7 @@ import csv
 import json
 import math
 import itertools
+import ast
 
 #import dict
 
@@ -180,27 +181,28 @@ def main():
             avg_y = y_sum / count
             avg_stationary_coordinates.append([k, avg_x, avg_y])
         print("avg_stationary_coordinate", avg_stationary_coordinates)
-            
-        for row in csv_reader: # Loop through all .csv rows
-            j=0
-            for xy in row['xyxy']: #[[x, y, x, y], [x,y,x,y]]
-                xcoor = 1/2 *xy[0]+1/2 *xy[2] 
-                ycoor = 1/2 *xy[1]+1/2 *xy[3] 
-                curr_center = [xcoor,ycoor]
-                for i in len(avg_stationary_coordinates):
-                    distance = math.sqrt( (avg_stationary_coordinates[i][1] - curr_center[0])**2 +(avg_stationary_coordinates[i][2] - curr_center[1])**2)
-                    if distance <= 1:
-                        xy[j] = ""
-                        row['confidence'] = ""
-                        if len(xy) == 0:
-                            row['visibility'] = 0
-                        j -= i
-                j += 1
-        with open(output_csv, "w", newline="", encoding="utf-8") as f:
-                writer = csv.writer(f)
-                writer.writerows(csv_reader)       
+        
+    for row in (csv_reader, 1, ):
+        if row[2] == "":
+            continue
+        print("test input:", repr(row[2]), flush=True)
+        coordinates = ast.literal_eval(row[2])
 
-                    
+        j = 0
+        for xy in coordinates:
+            xcoor = 0.5 * xy[0] + 0.5 * xy[2]
+            ycoor = 0.5 * xy[1] + 0.5 * xy[3]
+            curr_center = [xcoor, ycoor]
+
+            for i in range(len(avg_stationary_coordinates)):
+                for xy in coordinates:
+                    xcoor = 0.5 * xy[0] + 0.5 * xy[2]
+                    ycoor = 0.5 * xy[1] + 0.5 * xy[3]
+                    curr_center = [xcoor, ycoor]
+            with open(output_csv, "w", newline="", encoding="utf-8") as f:
+                    writer = csv.writer(f)
+                    writer.writerows(csv_reader)       
+
             
                 
     print(video_count_multibox, "videos have multiple balls detected")
