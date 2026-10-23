@@ -15,7 +15,12 @@ def main():
     video_count_multibox = 0
     model = YOLO(str(PROJECT_DIR / "yolo26x.pt"))
     video_dir = Path.home() / "data/RacketVision/tennis/videos"
-    for video in sorted(video_dir.glob("*.mp4")):
+    # Sort by match number, then clip number.
+    videos = sorted(video_dir.glob("*.mp4"), key=lambda video: (
+        int(video.stem.split("_")[0][5:]),
+        int(video.stem.split("_")[1]),
+    ))
+    for video in videos:
         results = model.predict(
             source=str(video),
             save=False, # save a new video
