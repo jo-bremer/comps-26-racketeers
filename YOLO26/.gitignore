@@ -3,3 +3,6 @@
 runs/
 *.log
 *.before-path-fix
+
+# Local backup files
+*.backup-*
