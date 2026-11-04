@@ -14,7 +14,7 @@ PROJECT_DIR = Path(__file__).resolve().parent
 def main():
     video_count_multibox = 0
     model = YOLO(str(PROJECT_DIR / "yolo26x.pt"))
-    video_dir = Path.home() / "data/RacketVision/tennis/videos"
+    video_dir = Path.home() / "data/RacketVision/tennis/videos"   
     for video in sorted(video_dir.glob("*.mp4")):
         results = model.predict(
             source=str(video),

@@ -1,5 +1,7 @@
 # USING A BOILERPLATE PYTHON GITIGNORE
 *.csv
+*.jpg
+*.txt
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

@@ -1,0 +1,7 @@
+path: /home/hallm6/comps-26-racketeers/YOLO26
+train: images/train
+val: images/val
+test: images/test
+
+names:
+  0: tennis_ball
