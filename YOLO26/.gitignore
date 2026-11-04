@@ -3,4 +3,6 @@
 runs/
 *.log
 *.before-path-fix
-*.jpg
+
+# Local backup files
+*.backup-*
