@@ -1,0 +1,62 @@
+{
+  "data": {
+    "raw_root": "../../data/RacketVision/tennis",
+    "prepared_root": "../../data/racketvision_yolo",
+    "pilot_root": "../../data/racketvision50_yolo"
+  },
+  "model": {
+    "pretrained": "yolo26x.pt"
+  },
+  "runtime": {
+    "device": 0
+  },
+  "training": {
+    "epochs": 30,
+    "patience": 10,
+    "batch": 2,
+    "optimizer": "AdamW",
+    "lr0": 0.001,
+    "warmup_bias_lr": 0.0,
+    "seed": 0,
+    "nms": null,
+    "project": "runs/train",
+    "names": {
+      "full640": "ball_full_x_640_adamw_30ep_warmup0_20261026",
+      "full1280": "ball_full_x_1280_adamw_30ep_warmup0_20261026",
+      "pilot640": "ball50_x_640_adamw_30ep",
+      "pilot1280": "ball50_x_1280_adamw_30ep"
+    },
+    "pilot_overrides": {
+      "warmup_bias_lr": 0.1
+    }
+  },
+  "checkpoints": {
+    "full640": "runs/train/ball_full_x_640_adamw_30ep_warmup0_20261026/weights/best.pt",
+    "full1280": "runs/train/ball_full_x_1280_adamw_30ep_warmup0_20261026/weights/best.pt",
+    "pilot640": "runs/train/ball50_x_640_adamw_30ep/weights/best.pt"
+  },
+  "evaluation": {
+    "project": "runs/evaluation",
+    "batch": 2,
+    "conf": 0.001,
+    "iou": 0.7,
+    "max_det": 300,
+    "mde_confidence": 0.25,
+    "nms": null
+  },
+  "inference": {
+    "project": "runs/inference",
+    "conf": 0.2,
+    "imgsz": 640,
+    "stationary_radius": 1.0,
+    "stationary_frames": 10
+  },
+  "stationary_evaluation": {
+    "project": "runs/stationary_evaluation",
+    "conf": 0.2,
+    "imgsz": 640,
+    "radius": 1.0,
+    "frames": 10,
+    "match_iou": 0.5
+  }
+}

@@ -1,5 +1,4 @@
-path: /home/gonga2/data/racketvision50_yolo
-
+path: "/home/gonga2/data/racketvision50_yolo"
 train: images/train
 val: images/val
 test: images/test
