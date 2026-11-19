@@ -6,3 +6,6 @@ runs/
 
 # Local backup files
 *.backup-*
+
+# Keep the dependency manifest despite the repository-wide *.txt pattern.
+!requirements.txt

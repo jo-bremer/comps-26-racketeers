@@ -1,0 +1,14 @@
+{
+  "recorded_date": "2026-11-15",
+  "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+  "packages": {
+    "ultralytics": "8.4.174",
+    "torch": "2.11.0+cu128",
+    "torchvision": "0.26.0+cu128",
+    "opencv-python": "5.0.0.93",
+    "numpy": "2.5.2",
+    "PyYAML": "6.0.1",
+    "Pillow": "10.2.0"
+  },
+  "note": "Observed server environment, not a portable lockfile. CUDA wheel selection must match the destination machine."
+}
