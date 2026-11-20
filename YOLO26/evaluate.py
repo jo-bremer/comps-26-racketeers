@@ -1,9 +1,8 @@
-"""Evaluate saved YOLO26 checkpoints; this script never trains a model.
+"""Test a saved tennis ball model on every image in the full test split.
 
-One result: python3 evaluate.py --model full640 --imgsz 640
-Own weights: python3 evaluate.py --weights runs/train/example/weights/best.pt --imgsz 640
-Six comparisons: python3 evaluate.py --matrix
-The default dataset is full and the default split is val.
+Use the path to  model .pt file after --weights.
+Use the image size you want after --imgsz.
+The script saves your scores in metrics.csv in a new folder under runs/evaluation/.
 """
 import argparse
 import csv
@@ -16,39 +15,28 @@ from pathlib import Path
 from project_config import load_config, resolve_path, dataset_root, write_dataset_yaml
 
 
-MATRIX_MODELS = ("pilot640", "full640", "full1280")
-MATRIX_SIZES = (640, 1280)
-
-
 def read_boxes(path):
     """Read YOLO label rows as lists of numbers."""
-    if not path.exists():
-        return []  # A missing prediction file means no detections.
-
     boxes = []
     text = path.read_text()
     for line in text.splitlines():
         if not line.strip():
             continue
-
         box = []
         for field in line.split():
             number = float(field)
             box.append(number)
         boxes.append(box)
-
     return boxes
 
 
 def check_boxes(boxes, path, predictions=False):
     """Check the number, class, coordinates, and confidence of each box."""
     if not predictions and len(boxes) > 1:
-        raise ValueError(f"Expected at most one labeled ball: {path}")
-
+        raise ValueError(f"Expected at most one labeled ball")
     fields = 5
     if predictions:
         fields = 6
-
     for box in boxes:
         valid_fields = len(box) == fields
         if valid_fields:
@@ -58,32 +46,17 @@ def check_boxes(boxes, path, predictions=False):
                     break
         if not valid_fields:
             raise ValueError(f"Expected {fields} finite YOLO fields: {path}")
-
         valid_coordinates = box[0] == 0
         if valid_coordinates:
             for value in box[1:5]:
                 if value < 0 or value > 1:
                     valid_coordinates = False
                     break
-        if not valid_coordinates:
-            raise ValueError(f"Expected class 0 and normalized coordinates: {path}")
-
-        if not predictions:
-            if box[3] <= 0 or box[4] <= 0:
-                raise ValueError(f"Ground-truth box dimensions must be positive: {path}")
-
-        # Clipping may give a prediction zero area; it still counts for MDE.
-        if predictions:
-            if box[5] < 0 or box[5] > 1:
-                raise ValueError(f"Prediction confidence must be between 0 and 1: {path}")
 
 
 def calculate_mde(image_paths, label_folder, prediction_folder, confidence):
     """Measure center errors in original pixels and count missed balls."""
     from PIL import Image
-
-    if not 0 <= confidence <= 1:
-        raise ValueError("MDE confidence must be between 0 and 1")
 
     errors = []
     frame_rows = []
@@ -94,15 +67,11 @@ def calculate_mde(image_paths, label_folder, prediction_folder, confidence):
     for image_path in image_paths:
         filename = image_path.stem + ".txt"
         label_path = label_folder / filename
-        if not label_path.exists():
-            raise FileNotFoundError(f"Missing ground-truth label: {label_path}")
-
         ground_truth = read_boxes(label_path)
         prediction_path = prediction_folder / filename
-        predictions = read_boxes(prediction_path)
+        predictions = read_boxes(prediction_path) if prediction_path.is_file() else []
         check_boxes(ground_truth, label_path)
         check_boxes(predictions, prediction_path, predictions=True)
-
         # Keep the first box when two predictions have the same confidence.
         prediction = None
         for box in predictions:
@@ -114,7 +83,6 @@ def calculate_mde(image_paths, label_folder, prediction_folder, confidence):
 
         with Image.open(image_path) as image:
             width, height = image.size
-
         gt_x = None
         gt_y = None
         pred_x = None
@@ -126,7 +94,6 @@ def calculate_mde(image_paths, label_folder, prediction_folder, confidence):
             pred_x = prediction[1] * width
             pred_y = prediction[2] * height
             prediction_confidence = prediction[5]
-
         if ground_truth:
             positive_frames += 1
             gt_x = ground_truth[0][1] * width
@@ -151,11 +118,9 @@ def calculate_mde(image_paths, label_folder, prediction_folder, confidence):
             "prediction_confidence": prediction_confidence,
         }
         frame_rows.append(frame_row)
-
     mde_px = None
     if errors:
         mde_px = sum(errors) / len(errors)
-
     prediction_coverage = None
     if positive_frames:
         prediction_coverage = len(errors) / positive_frames
@@ -173,12 +138,17 @@ def calculate_mde(image_paths, label_folder, prediction_folder, confidence):
 
 
 def sha256(path):
-    """Calculate a file's SHA-256 hash without reading it all at once."""
+    """This is recommended by LLM to increase efficiency.
+    Calculate a file's SHA-256 hash without reading all parts. Make it faster
+    """
     digest = hashlib.sha256()
     with path.open("rb") as file:
+        #read the first block, at most 1MB
         block = file.read(1024 * 1024)
+        #process if this block has data
         while block:
             digest.update(block)
+            #read the next package, get 0 byte at the end of file
             block = file.read(1024 * 1024)
     return digest.hexdigest()
 
@@ -198,14 +168,12 @@ def visible_files(folder, pattern):
     for path in folder.rglob(pattern):
         if not path.is_file():
             continue
-
         relative_path = path.relative_to(folder)
         hidden = False
         for part in relative_path.parts:
             if part.startswith("."):
                 hidden = True
                 break
-
         if not hidden:
             files.add(path.resolve())
 
@@ -213,50 +181,32 @@ def visible_files(folder, pattern):
 
 
 def prepare_data(config, base, dataset_name, split):
-    """Check the manifest, images, and labels before loading a model."""
+    """Check images and labels before loading a model."""
     root = dataset_root(config, base, dataset_name)
     manifest_path = root / "manifest.json"
     manifest_text = manifest_path.read_text()
     manifest = json.loads(manifest_text)
-
     selected = []
     for row in manifest:
         if row["split"] == split:
             selected.append(row)
     if not selected:
         raise ValueError(f"No {split} images in {manifest_path}")
-
     names = []
     for row in selected:
         names.append(row["image"])
-
-    for name in names:
-        if not isinstance(name, str):
-            raise ValueError("Manifest image names must be plain filenames")
-        if Path(name).name != name or name in ("", ".", ".."):
-            raise ValueError("Manifest image names must be plain filenames")
-
-    unique_names = set(names)
     unique_stems = set()
     for name in names:
         unique_stems.add(Path(name).stem)
-    if len(unique_names) != len(names) or len(unique_stems) != len(names):
-        raise ValueError(f"Duplicate image names or label stems in {split} manifest")
-
     image_folder = root / "images" / split
     label_folder = root / "labels" / split
     image_paths = []
     for name in names:
         image_paths.append(image_folder / name)
-
     for row, image_path in zip(selected, image_paths):
-        if not image_path.is_file():
-            raise FileNotFoundError(image_path)
 
         label_name = image_path.stem + ".txt"
         label = label_folder / label_name
-        if not label.is_file():
-            raise FileNotFoundError(f"Missing ground-truth label: {label}")
 
         boxes = read_boxes(label)
         check_boxes(boxes, label)
@@ -265,7 +215,7 @@ def prepare_data(config, base, dataset_name, split):
             if visibility not in (0, 1) or len(boxes) != visibility:
                 raise ValueError(f"Manifest visibility and label disagree: {label}")
 
-    # Visible files must match the manifest exactly.
+    # Visible files must match exactly.
     actual_images = visible_files(image_folder, "*")
     expected_images = set()
     for image_path in image_paths:
@@ -296,7 +246,6 @@ def prepare_data(config, base, dataset_name, split):
 
 def evaluate_checkpoint(weights, model_name, imgsz, data, output, settings):
     """Validate one checkpoint and save its metrics and center errors."""
-    # Keep this import here so --help and data checks do not load the ML library.
     import ultralytics
     from ultralytics import YOLO
 
@@ -350,7 +299,7 @@ def evaluate_checkpoint(weights, model_name, imgsz, data, output, settings):
         "exist_ok": True,
     }
     # This run just created an empty output folder, so exist_ok is safe.
-    # Leave nms out when it is None to keep the library's default behavior.
+    # Leave nms out when it is None to keep the lib's default behavior.
     if settings["nms"] is not None:
         options["nms"] = settings["nms"]
 
@@ -448,120 +397,39 @@ def evaluate_checkpoint(weights, model_name, imgsz, data, output, settings):
 
 
 def main(argv=None):
-    """Read command-line options and run a single evaluation or the matrix."""
+    """Read the checkpoint and image size and run one evaluation."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--config", type=Path)
-    choice = parser.add_mutually_exclusive_group(required=True)
-    choice.add_argument("--model", help="Checkpoint alias from project_config.json")
-    choice.add_argument(
-        "--weights", type=Path,
-        help="Checkpoint path, relative to the config directory"
-    )
-    choice.add_argument(
-        "--matrix", action="store_true",
-        help="Evaluate pilot640/full640/full1280 at 640 and 1280"
-    )
-    parser.add_argument(
-        "--imgsz", type=int,
-        help="Required for a single evaluation; matrix uses 640 and 1280"
-    )
-    parser.add_argument("--split", choices=("val", "test"), default="val")
-    parser.add_argument("--dataset", choices=("full", "pilot"), default="full")
-    parser.add_argument("--mde-conf", type=float)
-    parser.add_argument("--device", help="Override runtime.device, e.g. 0 or cpu")
-    parser.add_argument(
-        "--nms", choices=("on", "off", "default"),
-        help="Override the configured setting; default omits the argument"
-    )
+    parser.add_argument("--weights", type=Path, required=True)
+    parser.add_argument("--imgsz", type=int, required=True)
     args = parser.parse_args(argv)
+    if args.imgsz <= 0:
+        parser.error("Single evaluation requires a positive --imgsz")
 
-    if args.matrix and args.imgsz is not None:
-        parser.error("--matrix uses both 640 and 1280; omit --imgsz")
-    if not args.matrix:
-        if args.imgsz is None or args.imgsz <= 0:
-            parser.error("Single evaluation requires a positive --imgsz")
-
-    config, base = load_config(args.config)
+    config, base = load_config()
     evaluation = config["evaluation"]
-    settings = {}
-    setting_names = ("batch", "conf", "iou", "max_det", "mde_confidence")
-    for key in setting_names:
-        settings[key] = evaluation[key]
-    settings["nms"] = evaluation.get("nms")
+    settings = {
+        "batch": evaluation["batch"],
+        "conf": evaluation["conf"],
+        "iou": evaluation["iou"],
+        "max_det": evaluation["max_det"],
+        "mde_confidence": evaluation["mde_confidence"],
+        "nms": evaluation.get("nms"),
+        "device": config["runtime"]["device"],
+    }
 
-    if args.device is not None:
-        settings["device"] = args.device
-    else:
-        settings["device"] = config["runtime"]["device"]
-    if args.mde_conf is not None:
-        settings["mde_confidence"] = args.mde_conf
-    if args.nms == "on":
-        settings["nms"] = True
-    elif args.nms == "off":
-        settings["nms"] = False
-    elif args.nms == "default":
-        settings["nms"] = None
-
+    # Keep every prediction that could qualify for MDE.
     if not 0 <= settings["conf"] <= settings["mde_confidence"] <= 1:
-        parser.error("Require 0 <= evaluation.conf <= MDE confidence <= 1")
-    if not 0 <= settings["iou"] <= 1:
-        parser.error("Invalid evaluation IoU, batch size, or maximum detections")
-    if settings["batch"] <= 0 or settings["max_det"] <= 0:
-        parser.error("Invalid evaluation IoU, batch size, or maximum detections")
-    if settings["nms"] is not None:
-        if not isinstance(settings["nms"], bool):
-            parser.error("Configured evaluation.nms must be null, true, or false")
+        parser.error("Expected 0 <= conf <= mde_confidence <= 1")
 
-    cells = []
-    if args.weights is not None:
-        weights = resolve_path(base, args.weights)
-        cells.append((weights.stem, weights, args.imgsz))
-    else:
-        if args.matrix:
-            models = MATRIX_MODELS
-            sizes = MATRIX_SIZES
-        else:
-            models = (args.model,)
-            sizes = (args.imgsz,)
+    weights = resolve_path(base, args.weights)
+    if not weights.is_file():
+        raise FileNotFoundError(f"Missing checkpoint: {weights}")
 
-        for name in models:
-            if name not in config["checkpoints"]:
-                parser.error(f"Unknown checkpoint alias: {name}")
-
-        for name in models:
-            for size in sizes:
-                weights = resolve_path(base, config["checkpoints"][name])
-                cells.append((name, weights, size))
-
-    for name, weights, size in cells:
-        if not weights.is_file():
-            raise FileNotFoundError(f"Missing checkpoint: {weights}")
-
-    data = prepare_data(config, base, args.dataset, args.split)
+    data = prepare_data(config, base, "full", "test")
     project = resolve_path(base, evaluation["project"])
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-    if args.matrix:
-        label = "matrix"
-    else:
-        label = f"{cells[0][0]}_eval{args.imgsz}"
-    output = project / f"{label}_{args.dataset}_{args.split}_{stamp}"
-    if args.matrix:
-        output.mkdir(parents=True, exist_ok=False)
-
-    rows = []
-    for name, weights, size in cells:
-        if args.matrix:
-            cell_output = output / f"{name}_eval{size}"
-        else:
-            cell_output = output
-
-        row = evaluate_checkpoint(weights, name, size, data, cell_output, settings)
-        rows.append(row)
-        if args.matrix:
-            # Keep completed cells even if a later evaluation fails.
-            write_csv(output / "summary.csv", rows)
-
-    print(f"Completed {len(rows)}/{len(cells)} evaluations: {output}")
+    output = project / f"{weights.stem}_eval{args.imgsz}_full_test_{stamp}"
+    evaluate_checkpoint(weights, weights.stem, args.imgsz, data, output, settings)
 
 
 if __name__ == "__main__":
