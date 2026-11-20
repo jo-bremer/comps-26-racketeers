@@ -11,13 +11,13 @@ import glob
 import shutil
 import pandas as pd
 
-#import dict
+
 
 
 PROJECT_DIR = Path(__file__).resolve().parent
 
 def main():
-    '''
+    # Get lists for the videos in the RacketVision-defined training, validation, and testing splits.
     training_videos = []
     with open('train.json', 'r', encoding='utf-8') as file:
         data = json.load(file)
@@ -35,18 +35,21 @@ def main():
         data = json.load(file)
         for match in data:
             test_videos.append(match[0])
-    '''
     
-    '''
-    # Possibly make the path below more universal- this line below is not working for some reason
+    
+    
+    # Possibly make the path below more universal
     label_dir = Path.home() / "data/RacketVision/tennis/all"
-    #label_dir = "C:/Users/mhall/OneDrive/Computer Science Comps/YOLO Stuff/Data/data/tennis/all"
+    
     match_numbers = list(range(1, 432))
    
     label_folder = "./labels"
     
     moved_count = 0 # Should equal 431 after the loop below runs.
    
+   
+   # Uncomment this code to get the ground truth .csv files from RacketVision into this folder.
+    '''
     for match in match_numbers:
         match = "match" + str(match)
         print("Match:", match)
@@ -61,27 +64,38 @@ def main():
         destination_path = os.path.join(label_folder, file_name)
         
         # Move the file
-        shutil.copy2(csv_file[0], destination_path)
+        shutil.copy2(csv_file[0], full_path)
         print(f"Moved: {file_name} -> {label_folder}/")
         moved_count += 1
      
     
     print(f"\nSuccess! Successfully moved {moved_count} CSV files.")
     '''
-    '''
-    video_count_multibox = 0
-    # Make sure I understand this code here (through line 69)
-    # 1. Load the model
-    #model = YOLO(str(PROJECT_DIR / "yolo26x.pt"))
     
-    # 2. Set up directories (pointing to the actual videos folder)
+    video_count_multibox = 0
+    
+    
+    
+    
+    '''
+    The lines below create .jpg files for each RacketVision annotated frame from the videos (
+    through line 156). This consists of using the VideoCapture() function from from the cv2
+    package to create an object that captures the video ("cap"), then having a while loop,
+    "while cap.isOpened:." Then, the cap.read() function is used to extract a frame for each
+    iteration of the while loop and as long as the current frame number is one of the frame
+    numbers in the .csv of ground truth annotated frames for the current video, the .jpg for the
+    current frame is written to the appropriate test, train, or val subdirectory in the images
+    folder in the YOLO26 directory (based on which split RacketVision assigned the current video 
+    to).
+    '''
+    # Set up directories pointing to the actual directory with the videos from the dataset.
     video_dir = Path.home() / "data/RacketVision/tennis/videos"
     train_output_folder = PROJECT_DIR / "images" / "train"
     val_output_folder = PROJECT_DIR / "images" / "val"
     test_output_folder = PROJECT_DIR / "images" / "test"
     #output_folder.mkdir(parents=True, exist_ok=True)
     
-    # 3. Find all mp4 videos in the directory
+    # Find all .mp4 videos in the directory.
     
     video_files = list(video_dir.glob("*.mp4"))
     
@@ -91,7 +105,7 @@ def main():
 
     frame_count = 0
 
-    # 4. Loop through each video file found
+    # Loop through each video file found.
     for video_path in video_files:
         frame_number = 0
         print(f"Processing video: {video_path.name}")
@@ -102,31 +116,28 @@ def main():
             continue
             
         fps = cap.get(cv2.CAP_PROP_FPS)
-        if fps == 0:  # Fallback if FPS reading fails
+        if fps == 0:  # Fallback if FPS reading fails.
             fps = 30
             
         video_frame_idx = 0
 
         while cap.isOpened():
-            #frame_number += 1
-            # Read every single frame sequentially
+            
+            # Read every single frame sequentially.
             ret, frame = cap.read()
             if not ret:
                 break
 
             target_frame = video_frame_idx
-            # Calculate the exact frame index to jump to (1 frame per second)
-            #target_frame = int(video_frame_idx * fps)
-            #cap.set(cv2.CAP_PROP_POS_FRAMES, target_frame)
             
-            # Gets just the match names from the video name
+            # Gets just the match names from the video name.
             match_name = video_path.stem.split("_")[0] 
             
-            #ret, frame = cap.read()
+            
             if not ret:
-                break  # End of this video
+                break  # End of the current video.
                 
-            # Use unique filenames so videos don't overwrite each other's frames
+            # Use unique filenames so videos do not overwrite each other's frames.
             if match_name in training_videos:
                 img_name = train_output_folder / f"{match_name}_frame_{frame_number}.jpg"
             
@@ -286,14 +297,14 @@ def main():
         file_counter += 1
         
     print(f"Created {file_counter} .txt files.")
-    '''
+    
     model = YOLO(str(PROJECT_DIR / "yolo26x.pt"))
     #results = model.train(data = "videos.yaml", epochs = 50, imgsz = 1280)
     results = model.train(
         data = str(PROJECT_DIR / "videos.yaml"),
         epochs = 30,
         patience = 10,
-        imgsz = 640,
+        imgsz = 1280,
         batch = -1,
         device = 0,
         optimizer = "AdamW",
