@@ -168,14 +168,14 @@ If there is a ball visible in the current frame, the one line of the .txt file l
 
 class_id is always 0 because this is the id of the tennis_ball class as defined in videos.yaml.
 center_x is the tennis ball's ground truth horizontal position in the frame relative to the size
-of the frame (calculated as ball x-coordinate/image width). For instance, a value of 0 is at the 
-left edge of the frame, a value of 0.5 is halfway across the frame, and a value of 1 is at the 
-right edge of the frame. center_y is the tennis ball's ground truth vertical position in the frame
-relative to the size of the frame (calculated as ball y-coordinate/image height). For instance, a 
-value of 0 is at the bottom of the frame, a value of 0.5 halfway up the frame, and a value of 1 is 
-at the top of the frame. box_width and box_height plus center_x and center_y all combine to form
-20 pixel by 20 pixel ground truth bounding boxes around the RacketVision ground truth annotated
-ball locations. 
+of the frame (calculated as: annotated ball x-coordinate/image width). For instance, a value of 0 
+is at the left edge of the frame, a value of 0.5 is halfway across the frame, and a value of 1 is 
+at the right edge of the frame. center_y is the tennis ball's ground truth vertical position in 
+the frame relative to the size of the frame (calculated as: annotated ball y-coordinate/image 
+height). For instance, a value of 0 is at the bottom of the frame, a value of 0.5 halfway up the 
+frame, and a value of 1 is at the top of the frame. box_width and box_height plus center_x and 
+center_y all combine to form 20 pixel by 20 pixel ground truth bounding boxes around the 
+RacketVision ground truth annotated ball locations. 
 
 The YOLO labels are created by looping through all of the newly created .jpg files for the input
 split and then extracting the ball-visibility and location information from the corresponding
