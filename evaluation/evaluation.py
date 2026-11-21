@@ -1,59 +1,49 @@
+import numpy as np
 import pandas as pd
-import math
 
-def evaluate_prediction_correctness(infer_df, gt_df, correct_prediction_radius=7, scale=0.266666667):
-    infer_df["Correct"] = 0
-    infer_df.loc[( \
-        (infer_df["X"]/scale - gt_df.loc[gt_df["Frame"] == infer_df["Frame"], "X"])**2 +
-        (infer_df["Y"]/scale - gt_df.loc[gt_df["Frame"] == infer_df["Frame"], "Y"])**2)**0.5 
-                 <= correct_prediction_radius, \
-    "Correct"] = 1
+def build_eval_df(infer_df, gt_df, radius=5, scale=1.0, iou50 = 7):
+    df = infer_df.merge(gt_df, on="Frame", suffixes=("_pred", "_gt"))
+    df["Distance Error"] = np.hypot(
+        df["X_pred"] / scale - df["X_gt"],
+        df["Y_pred"] / scale - df["Y_gt"],
+    )
+    pred_vis = df["Visibility_pred"] > 0
+    gt_vis = df["Visibility_gt"] > 0
+    df["Correct"] = (pred_vis & gt_vis & (df["Distance Error"] <= radius))
+    df["Half Overlap"] = (pred_vis & gt_vis & (df["Distance Error"] <= iou50))
+    return df
+
+def eval_precision(df):
+    n_pred = (df["Visibility_pred"] > 0).sum()
+    return df["Correct"].sum() / n_pred if n_pred else 0.0
+
+def eval_recall(df):
+    n_gt = (df["Visibility_gt"] > 0).sum()
+    return df["Correct"].sum() / n_gt if n_gt else 0.0
+
+def eval_MDE(df):
+    return df.loc[(df["Visibility_pred"] > 0) & (df["Visibility_gt"] > 0), "Distance Error"].mean()
+
+def eval_mAP50(df):
+    n_gt = (df["Visibility_gt"] > 0).sum()
+    preds = df[df["Visibility_pred"] > 0].sort_values("Confidence_pred", ascending=False)
+    if n_gt == 0 or preds.empty:
+        return 0.0
+
+    tp = preds.loc[preds["Half Overlap"] > 0, "Correct"].cumsum()
+    fp = (1 - preds.loc[preds["Half Overlap"] > 0, "Correct"]).cumsum()
     
-    return infer_df
-
-
-
-def eval_precision(infer_df, gt_df):
+    prec = tp / (tp + fp)
+    rec = tp / n_gt
+    rec_prev = rec.shift(fill_value=0)
     
-    raise Exception("TODO - Evaluate Precision")
-    return -1.0
+    return float((prec * (rec - rec_prev)).sum())
 
-def eval_recall(infer_df, gt_df):
-    raise Exception("TODO - Evaluate Recall")
-    return -1.0
+def evaluate(infer_df, gt_df):
+    assert set(infer_df.columns) == set(gt_df.columns) == {"Frame", "Visibility", "X", "Y", "Confidence"}
 
-def eval_MDE(infer_df, gt_df):
-    # ASSUMING 1920x1080 - INSURE
-    raise Exception("TODO - Evaluate MDE")
-    return -1.0
-
-def eval_mAP50(infer_df, gt_df):
-    raise Exception("TODO - Evaluate mAP@50")
-    return -1.0
-
-
-
-def evaluate(infer_csv, gt_csv):
-    infer_df = pd.read_csv(infer_csv)
-    gt_df = pd.read_csv(gt_csv) #Use the interp_ball for gt!
-    
-    gt_df = gt_df.drop(['Confidence'], axis=1, errors='ignore')
-    
-    assert(set(infer_df.columns.tolist()) == set(gt_df.columns.tolist())\
-        == set(["Frame", "Visibility", "X", "Y"]))
-    
-    evaluate_prediction_correctness(infer_df, gt_df)
-    
-    prec, rec, mde, map50 = \
-        eval_precision(infer_df, gt_df),\
-        eval_recall(infer_df, gt_df),\
-        eval_MDE(infer_df, gt_df),\
-        eval_mAP50(infer_df, gt_df)
-    
+    df = build_eval_df(infer_df, gt_df)
+    prec, rec, mde, map50 = eval_precision(df), eval_recall(df), eval_MDE(df), eval_mAP50(df)
     print(f"[Precision : {prec} | Recall : {rec} | MDE : {mde} | mAP@50 : {map50}]")
-
-def main():
-    evaluate("./evaluation/test_infer.csv", "./evaluation/test_gt.csv")
-
-if __name__ == "__main__":
-    main()
+    
+    return prec, rec, mde, map50

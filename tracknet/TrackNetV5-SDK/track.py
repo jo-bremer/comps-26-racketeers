@@ -1,23 +1,25 @@
+# MODIFIED BY JO BREMER
+
 # -*- coding: utf-8 -*-
 import torch
 import cv2
 import numpy as np
 import argparse
 import os
-import math # 确保 math 被导入
+import math # Make sure math is imported
 import csv
 from pathlib import Path
 from tqdm import tqdm
 from collections import deque
 import time
 
-# 导入你项目里的构建器和模型！
+# Import the builder and models from your project!
 from models_factory.builder import build_model
 from datasets_factory.transforms.tracknet_transforms import (
     Resize, ConcatChannels
 )
 
-# --- 1. “模型配置库” ---
+# --- 1. "Model config library" ---
 MODEL_CONFIGS = {
     'v2': dict(
         type='TrackNetV2',
@@ -39,7 +41,7 @@ MODEL_CONFIGS = {
     )
 }
 
-# --- 2. 辅助函数 (✨ 已修改，与你的 Metric 脚本对齐) ---
+# --- 2. Helper functions ---
 def _heatmap_to_coords(heatmap: np.ndarray, threshold: int = 127):
     if heatmap.dtype != np.uint8:
         heatmap = heatmap.astype(np.uint8)
@@ -54,16 +56,15 @@ def _heatmap_to_coords(heatmap: np.ndarray, threshold: int = 127):
             cx = int(M["m10"] / M["m00"])
             cy = int(M["m01"] / M["m00"])
             
-            # --- ✨ 新增：提取置信度 ---
-            # 创建一个掩码，只关注最大轮廓内的区域
+            # Create a mask that only covers the region inside the largest contour
             mask = np.zeros(heatmap.shape, dtype=np.uint8)
             cv2.drawContours(mask, [largest_contour], -1, 255, -1)
             
-            # 在原始热力图中找到该区域内的最大值
-            # minMaxLoc 会返回 (minVal, maxVal, minLoc, maxLoc)
+            # Find the maximum value within that region of the original heatmap
+            # minMaxLoc returns (minVal, maxVal, minLoc, maxLoc)
             _, max_val, _, _ = cv2.minMaxLoc(heatmap, mask=mask)
             
-            # 将 0-255 归一化到 0-1 之间作为 conf
+            # Normalize 0-255 to 0-1 as conf
             conf = round(max_val / 255.0, 4)
             
             return cx, cy, conf
@@ -72,24 +73,24 @@ def _heatmap_to_coords(heatmap: np.ndarray, threshold: int = 127):
 
 def draw_comet_tail(frame, points_deque, head_radius=8):
     """
-    基于半径衰减的圆点轨迹可视化 (无连线版)
-    :param frame: 当前图像帧 (BGR)
-    :param points_deque: 存储坐标的队列，支持 (x, y) 或 (x, y, vis)
-    :param head_radius: 最前端圆点的最大半径
+    Dot-trajectory visualization based on radius decay (no connecting lines)
+    :param frame: Current image frame (BGR)
+    :param points_deque: Queue storing coordinates, supports (x, y) or (x, y, vis)
+    :param head_radius: Maximum radius of the frontmost dot
     """
-    # 无需创建全黑 overlay，因为我们直接在原图绘制实心圆
-    # 如果需要半透明效果，可以保留 overlay 逻辑，这里采用你要求的直接绘制
+    # No need to create an all-black overlay, since we draw filled circles directly on the original image
+    # If a semi-transparent effect is needed, the overlay logic can be kept; here we use the direct drawing you requested
     
     q_len = len(points_deque)
     if q_len == 0:
         return frame
 
     for i, pt in enumerate(points_deque):
-        # 1. 安全检查：跳过空点或 NaN
+        # 1. Safety check: skip empty points or NaN
         if pt is None:
             continue
             
-        # 兼容处理：支持 (x, y) 或 (x, y, vis/conf)
+        # Compatibility handling: supports (x, y) or (x, y, vis/conf)
         if len(pt) >= 3:
             tx, ty, tvis = pt[:3]
             if tvis == 0 or tvis is None: continue 
@@ -99,34 +100,33 @@ def draw_comet_tail(frame, points_deque, head_radius=8):
         if tx is None or ty is None:
             continue
 
-        # 2. 计算半径衰减 (核心逻辑)
-        # i=0 (最旧) -> scale 最小; i=q_len-1 (最新) -> scale=1.0
+        # 2. Compute radius decay (core logic)
+        # i=0 (oldest) -> smallest scale; i=q_len-1 (newest) -> scale=1.0
         scale = (i + 1) / q_len
         current_radius = int(head_radius * scale)
 
-        # 确保半径至少为 1
+        # Ensure the radius is at least 1
         current_radius = max(1, current_radius)
 
-        # 3. 绘制实心球
-        # 使用 LINE_AA 开启抗锯齿，让圆点边缘更丝滑
+        # 3. Draw the filled ball
+        # Use LINE_AA to enable anti-aliasing so the dot edges are smoother
         cv2.circle(
             frame, 
             (int(tx), int(ty)), 
             current_radius, 
-            (0, 0, 255), # 纯红色
-            -1,          # 实心
+            (0, 0, 255), # Pure red
+            -1,          # Filled
             lineType=cv2.LINE_AA
         )
 
     return frame
 
 
-# --- 3. “核心加工车间”: ✨ process_video (✨ 已修改) ✨ ---
+# --- 3. "Core workshop": process_video ---
 def process_video(video_path: Path, model, device, args, output_root_dir: Path) -> dict:
     """
-    处理单个视频文件，并生成所有需要的输出文件。
-    新逻辑：一次读取 3 帧，推理 3 帧，写入 3 帧，然后跳 3 帧。
-    ✨ 新增: 返回一个包含统计数据的字典。
+    Process a single video file and generate all required output files.
+    New logic: read 3 frames at a time, run inference on 3 frames, write 3 frames, then move ahead 3 frames.
     """
     print(f"\n🏭 Processing video: {video_path.name}")
     
@@ -135,7 +135,6 @@ def process_video(video_path: Path, model, device, args, output_root_dir: Path) 
     
     cap = cv2.VideoCapture(str(video_path))
 
-    # --- ✨ 新增：获取视频原始分辨率 ---
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     resolution_str = f"{width}x{height}"
@@ -158,30 +157,30 @@ def process_video(video_path: Path, model, device, args, output_root_dir: Path) 
     csv_data = []
     detected_frames_count = 0
     
-    # 预处理转换（保持不变）
+    # Preprocessing transforms (unchanged)
     resizer = Resize(keys=['path_prev', 'path', 'path_next'], size=input_size)
     concatenator = ConcatChannels(
         keys=['path_prev', 'path', 'path_next'],
         output_key='image'
     )
     
-    # --- 新的循环逻辑 ---
+    # --- New loop logic ---
     frame_idx_counter = 0
     iteration_count = 0
     pbar = tqdm(total=total_frames, desc=f"Processing {video_path.stem}")
-    start_time = time.time() # 记录开始时间
+    start_time = time.time() # Record the start time
 
     while cap.isOpened():
-        # 1. 一次性读取 3 帧
+        # 1. Read 3 frames at once
         ret1, frame1 = cap.read()
         ret2, frame2 = cap.read()
         ret3, frame3 = cap.read()
 
-        # 如果任何一帧读取失败（视频末尾），则终止循环
+        # If any frame fails to read (end of video), terminate the loop
         if not ret1 or not ret2 or not ret3:
             break
 
-        # 2. 准备模型输入
+        # 2. Prepare model input
         frame1_rgb = cv2.cvtColor(frame1, cv2.COLOR_BGR2RGB)
         frame2_rgb = cv2.cvtColor(frame2, cv2.COLOR_BGR2RGB)
         frame3_rgb = cv2.cvtColor(frame3, cv2.COLOR_BGR2RGB)
@@ -195,70 +194,73 @@ def process_video(video_path: Path, model, device, args, output_root_dir: Path) 
         image_np = data_dict['image']
         image_tensor = torch.from_numpy(image_np.transpose(2, 0, 1)).float().div(255).unsqueeze(0).to(device)
 
-        # 3. 批量推理
+        # 3. Batch inference
         with torch.no_grad():
-            # heatmap_preds 的形状是 [1, 3, H, W]
+            # heatmap_preds has shape [1, 3, H, W]
             heatmap_preds = model(image_tensor)
         
-        # 移除 batch 维度，得到 (3, H, W) 的 NumPy 数组
+        # Remove the batch dimension to get a NumPy array of shape (3, H, W)
         heatmaps_np = heatmap_preds.squeeze(0).cpu().numpy()
-        threshold_uint8 = int(args.threshold * 255) # 阈值仍然由参数控制
-
-        # 4. 循环处理这 3 帧的结果
+        
+        threshold_uint8 = int(args.threshold * 255) # The threshold is still controlled by the argument
+            
+        # 4. Loop over the results for these 3 frames
         for i in range(3):
+            
             current_frame_idx = frame_idx_counter + i
-            # 确保不会因为最后几帧凑不满3帧而出错
+            # Make sure the last few frames, which may not fill 3, don't cause errors
             if current_frame_idx >= total_frames:
                 continue
 
-            single_heatmap_np = heatmaps_np[i] # 形状 (H, W)
+            single_heatmap_np = heatmaps_np[i] # Shape (H, W)
             heatmap_uint8 = (single_heatmap_np * 255).astype(np.uint8)
 
-            # (A) 提取坐标 (✨ 已修改：简化调用)
+            # (A) Extract coordinates
             coords = _heatmap_to_coords(
                 heatmap_uint8, 
                 threshold=threshold_uint8
             )
             
-            # (B) 记录 CSV 和轨迹
+            # (B) Record CSV and trajectory
             if coords is not None:
                 detected_frames_count += 1
+                
                 trajectory_points.append(coords)
-                csv_row = {'frame_number': current_frame_idx, 'detected': 1, 'x': coords[0], 'y': coords[1]}
+                csv_data.append({'frame_number': current_frame_idx, 'detected': 1, 'x': coords[0], 'y': coords[1], 'conf': coords[2]})
             else:
                 trajectory_points.append(None)
-                csv_row = {'frame_number': current_frame_idx, 'detected': 0, 'x': 0.0, 'y': 0.0}
-            csv_data.append(csv_row)
+                csv_data.append({'frame_number': current_frame_idx, 'detected': 0, 'x': 0.0, 'y': 0.0, 'conf': 0.0})
             
-            # (C) 绘制和写入视频
+            # (C) Draw and write video
             frame_to_draw = cv2.cvtColor(resized_frames[i], cv2.COLOR_RGB2BGR)
             
-            # 绘制轨迹视频
+            # Draw trajectory video
             final_traj_frame = draw_comet_tail(frame_to_draw, trajectory_points)
             writer_traj.write(final_traj_frame)
 
-            # 绘制对比视频
+            # Draw comparison video
             heatmap_color = cv2.applyColorMap(heatmap_uint8, cv2.COLORMAP_JET)
             combined_frame = np.hstack((final_traj_frame, heatmap_color))
             writer_comp.write(combined_frame)
+            
 
-        # 5. 更新计数器和进度条 (关键！)
+        # 5. Update counters and progress bar (important!)
         frame_idx_counter += 3
         iteration_count += 1
         pbar.update(3)
     
-    # --- 循环结束后的清理 ---
+    # --- Cleanup after the loop ends ---
 
     end_time = time.time()
     total_duration = end_time - start_time
-    # 平均每秒处理多少个 iteration (每 iteration 处理 3 帧)
+    # Average number of iterations processed per second (each iteration handles 3 frames)
     avg_it_per_sec = iteration_count * 3 / total_duration if total_duration > 0 else 0
     print(f"⏱️  Processed {iteration_count * 3} frames of {resolution_str} in {total_duration:.2f} seconds. Avg: {avg_it_per_sec:.2f} frames/sec.")
-    pbar.close() # 关闭进度条
+    pbar.close() # Close the progress bar
 
     detection_ratio = (detected_frames_count / total_frames) if total_frames > 0 else 0
     with open(csv_path, 'w', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['frame_number', 'detected', 'x', 'y'])
+        writer = csv.DictWriter(f, fieldnames=['frame_number', 'detected', 'x', 'y', 'conf'])
         writer.writeheader()
         writer.writerows(csv_data)
         f.write("\n")
@@ -270,7 +272,7 @@ def process_video(video_path: Path, model, device, args, output_root_dir: Path) 
     writer_comp.release()
     print(f"✅ Finished processing. Results saved in: {video_output_dir}")
     
-    # ✨ 新增：返回统计结果
+    # ✨ New: return statistics
     stats = {
         'video_name': video_path.name,
         'detected_frames': detected_frames_count,
@@ -280,13 +282,13 @@ def process_video(video_path: Path, model, device, args, output_root_dir: Path) 
     return stats
 
 
-# --- 4. “总调度室”: ✨ main (✨ 已修改) ✨ ---
+# --- 4. "Control room": ✨ main (✨ modified) ✨ ---
 def main():
     parser = argparse.ArgumentParser(description="TrackNet Batch Inference Pipeline")
     parser.add_argument('input_dir', type=str, help='Path to the directory containing input videos.')
     parser.add_argument('weights_path', type=str, help='Path to the model weights (.pth file).')
     
-    # ✨ 新增架构选择参数
+    # ✨ New architecture selection argument
     parser.add_argument(
         '--arch', 
         type=str, 
@@ -297,17 +299,19 @@ def main():
     
     parser.add_argument('--device', type=str, default='cuda:0', help='Device to use for inference (e.g., "cuda:0" or "cpu").')
     
-    # ✨ 唯一可调的后处理参数 ✨
+    # ✨ The only tunable post-processing parameter ✨
     parser.add_argument('--threshold', type=float, default=0.5, help='Confidence threshold for detection (0-1).')
+    # parser.add_argument('--max-threshold', type=float, default=0.95, help='Confidence threshold for detection (0-1).')
 
-    # ✨✨✨ 已删除 --min-circularity 和 --min-area ✨✨✨
+
+    # ✨✨✨ Removed --min-circularity and --min-area ✨✨✨
     
     args = parser.parse_args()
 
-    # ✨ 动态获取模型配置
+    # ✨ Dynamically get the model config
     model_cfg = MODEL_CONFIGS.get(args.arch)
     if model_cfg is None:
-        print(f"❌ 错误：未知的架构 '{args.arch}'。请从 'v2', 'v4', 'v5' 中选择。")
+        print(f"❌ Error: Unknown architecture '{args.arch}'. Please choose from 'v2', 'v4', 'v5'.")
         return
         
     print(f"🚀 Starting Batch Inference Pipeline for [TrackNet {args.arch.upper()}]...")
@@ -320,7 +324,7 @@ def main():
 
     input_dir = Path(args.input_dir)
     
-    # ✨ 动态设置输出目录
+    # ✨ Dynamically set the output directory
     output_root_dir = input_dir / args.arch 
     output_root_dir.mkdir(exist_ok=True)
     
@@ -337,11 +341,11 @@ def main():
     video_files = sorted(list(set(video_files)))
     print(f"Found {len(video_files)} videos to process.")
     
-    # ✨ 1. 初始化汇总列表
+    # ✨ 1. Initialize the summary list
     summary_data_list = [] 
     
     for video_path in video_files:
-        # ✨ 2. 收集每个视频的返回结果
+        # ✨ 2. Collect the returned result of each video
         try:
             video_stats = process_video(video_path, model, device, args, output_root_dir)
             if video_stats:
@@ -350,27 +354,27 @@ def main():
             print(f"❌ ERROR processing {video_path.name}: {e}")
             print("Skipping this video and continuing...")
 
-    # ✨ 3. 循环结束后，写入全局汇总CSV
+    # ✨ 3. After the loop ends, write the global summary CSV
     if summary_data_list:
         summary_csv_path = output_root_dir / f"_summary_report_{args.arch}.csv"
         print(f"\n📊 Writing summary report to {summary_csv_path}")
         
         fieldnames = ['video_name', 'detected_frames', 'total_frames', 'detection_ratio']
-        # 定义中文表头
-        chinese_header_map = {
-            'video_name': '视频名',
-            'detected_frames': '检测到的球帧数',
-            'total_frames': '视频总帧数',
-            'detection_ratio': '检测比率'
+        # Define the header labels
+        header_map = {
+            'video_name': 'Video Name',
+            'detected_frames': 'Detected Ball Frames',
+            'total_frames': 'Total Video Frames',
+            'detection_ratio': 'Detection Ratio'
         }
         
         try:
             with open(summary_csv_path, 'w', newline='', encoding='utf-8-sig') as f:
-                # 写入UTF-8 BOM头和中文表头
+                # Write the UTF-8 BOM and the header row
                 writer = csv.writer(f)
-                writer.writerow([chinese_header_map[field] for field in fieldnames])
+                writer.writerow([header_map[field] for field in fieldnames])
                 
-                # 使用 DictWriter 写入数据行
+                # Use DictWriter to write the data rows
                 dict_writer = csv.DictWriter(f, fieldnames=fieldnames)
                 dict_writer.writerows(summary_data_list)
         except Exception as e:

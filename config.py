@@ -7,3 +7,5 @@ VIDEO_CODEC = cv2.VideoWriter_fourcc(*'XVID')
 
 VIDEO_FORMAT = "mp4"
 FRAME_FORMAT = "jpg"
+
+CORRECT_PREDICTION_RADIUS = 5
