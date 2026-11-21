@@ -1,5 +1,4 @@
-# Application versions observed on the original server (Python 3.12).
-# Select a torch/torchvision wheel compatible with your hardware first.
+# Application versions that needs to be downloaded
 torch==2.11.0
 torchvision==0.26.0
 ultralytics==8.4.174
