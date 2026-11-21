@@ -1,3 +1,4 @@
+"""This file prepare data for YOLO fine-tuning. And finetune the YOLO26 model."""
 from pathlib import Path
 from ultralytics import YOLO
 import csv
