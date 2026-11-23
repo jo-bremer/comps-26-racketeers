@@ -267,7 +267,7 @@ def evaluate_checkpoint(weights, model_name, imgsz, data, output, settings):
         train_imgsz = training_args.get("imgsz")
 
     model = YOLO(str(weights))
-    if model.names != {0: "ball"}:
+    if model.names not in ({0: "ball"}, {0: "tennis_ball"}):
         raise ValueError(f"Expected one ball class, got {model.names}")
 
     observed = {}
@@ -365,21 +365,11 @@ def evaluate_checkpoint(weights, model_name, imgsz, data, output, settings):
     }
 
     row = {
-        "model": model_name,
-        "dataset": data["name"],
-        "split": data["split"],
-        "train_imgsz": train_imgsz,
-        "eval_imgsz": imgsz,
+        "mde_px": mde["mde_px"],
+        "mAP50": metric_values["metrics/mAP50(B)"],
         "precision": metric_values["metrics/precision(B)"],
         "recall": metric_values["metrics/recall(B)"],
-        "mAP50": metric_values["metrics/mAP50(B)"],
-        "mAP50_95": metric_values["metrics/mAP50-95(B)"],
     }
-    for key, value in mde.items():
-        row[key] = value
-    row["inference_ms"] = result["speed_ms_per_image"].get("inference")
-    row["weights"] = str(weights)
-    row["source_json"] = str(save_dir / "result.json")
 
     write_csv(save_dir / "center_errors.csv", frame_rows)
     write_csv(save_dir / "metrics.csv", [row])
@@ -387,12 +377,9 @@ def evaluate_checkpoint(weights, model_name, imgsz, data, output, settings):
     result_text = json.dumps(result, indent=2) + "\n"
     result_path.write_text(result_text)
 
-    print(f"Results: {save_dir / 'result.json'}")
-    print(
-        f"MDE: {mde['mde_px']} pixels; "
-        f"scored={mde['mde_scored_frames']}; "
-        f"misses={mde['missed_positive_frames']}"
-    )
+    print(f"Results: {save_dir / 'metrics.csv'}")
+    print("  ".join(f"{key}={value:.4f}" if value is not None else f"{key}=N/A"
+                    for key, value in row.items()))
     return row
 
 
