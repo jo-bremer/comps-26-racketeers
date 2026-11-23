@@ -173,7 +173,7 @@ of the frame (calculated as: annotated ball x-coordinate/image width). For insta
 is at the left edge of the frame, a value of 0.5 is halfway across the frame, and a value of 1 is 
 at the right edge of the frame. center_y is the tennis ball's ground truth vertical position in 
 the frame relative to the size of the frame (calculated as: annotated ball y-coordinate/image 
-height). For instance, a value of 0 is at the bottom of the frame, a value of 0.5 halfway up the 
+height). For example, a value of 0 is at the bottom of the frame, a value of 0.5 is halfway up the 
 frame, and a value of 1 is at the top of the frame. box_width and box_height plus center_x and 
 center_y all combine to form 20 pixel by 20 pixel ground truth bounding boxes around the 
 RacketVision ground truth annotated ball locations. 
@@ -235,7 +235,7 @@ def create_yolo_labels(split):
 def main():
     training_videos, val_videos, test_videos = load_video_splits()
 
-    # Possibly make the path below more universal
+    
     label_dir = Path.home() / "data/RacketVision/tennis/all"
     
     match_numbers = list(range(1, 432))
@@ -264,7 +264,7 @@ def main():
     model = YOLO(str(PROJECT_DIR / "yolo26x.pt"))
     
     '''
-    Train the pretrained YOLO26x model. The results of training will be put into this directory:
+    Fine-tune the pretrained YOLO26x model. The results of training will be put into this directory:
     ".../YOLO26/runs/tennis/yolo26_run1".
     '''
     results = model.train(
