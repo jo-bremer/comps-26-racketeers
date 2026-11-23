@@ -23,7 +23,9 @@ def main():
 
     model = YOLO(str(best_path))
     
-    
+    '''
+    Change the match number in the path below to get the annotated video for another clip.
+    '''
     match_video = Path.home() / "data/RacketVision/tennis/videos/match10_000.mp4"
     
     # Shorthand to run the predict function for specified video.
