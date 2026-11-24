@@ -99,7 +99,7 @@
     <div class="eyebrow">Single frame · Bounding box</div><h3>RTMDet-Tiny</h3><p>The model uses a convolutional neural network to extract visual features from an image and combines features at different scales to recognize objects of various sizes. Its detection head then predicts bounding boxes and confidence scores for possible tennis balls.</p><a href="https://arxiv.org/abs/2212.07784">RTMDet paper</a></article>
   </div>
   <div class="prep">
-    <div><h3>Detector training labels</h3><p>Tennis footage was converted into labeled frames. Each ball annotation was represented by a 15 × 15-pixel bounding box in the original image coordinates.</p><a href="https://arxiv.org/abs/2511.17045">RacketVision paper</a></div>
+    <div><h3>Detector training labels</h3><p>Tennis footage was converted into labeled frames. Each ball location annotation was a single pixel (x, y) coordinate in the RacketVision ground-truth data.</p><a href="https://arxiv.org/abs/2511.17045">RacketVision paper</a></div>
     <table class="split-table"><caption class="sr-only">RacketVision tennis splits</caption><thead><tr><th>Split</th><th>Clips</th><th>Annotated frames</th></tr></thead>
       <tbody><tr><th scope="row">Training</th><td>350</td><td>17,494</td></tr><tr><th scope="row">Validation</th><td>38</td><td>1,900</td></tr><tr><th scope="row">Test</th><td>43</td><td>2,150</td></tr></tbody></table>
   </div>
