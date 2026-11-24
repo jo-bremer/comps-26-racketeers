@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="canonical" href="https://carleton-tennis-ball-tracking.fizzyjackrabbit128.chatgpt.site/">
+  <meta name="theme-color" content="#123a2c">
+  <meta name="description" content="TennisVision, a Carleton College computer science comps project comparing YOLO26x, TrackNetV5, and RTMDet-Tiny on RacketVision tennis footage.">
+  <title>TennisVision | Tennis Ball Tracking</title>
+  <link rel="icon" href="assets/ball.svg" type="image/svg+xml">
+  <link rel="preload" href="assets/dm-sans.ttf" as="font" type="font/ttf" crossorigin>
+  <link rel="stylesheet" href="site.css">
+  <script src="site.js" defer></script>
+</head>
+<body>
+<a href="#main" class="skip">Skip to content</a>
+<header id="top" class="masthead"><div class="wrap head-inner">
+  <a class="brand" href="#top" aria-label="TennisVision home"><span class="ball-mark" aria-hidden="true"></span>TennisVision</a>
+  <nav aria-label="Project sections"><a href="#overview">Overview</a><a href="#results">Results</a><a href="#method">Method</a><a href="#posters">Posters</a></nav>
+  <span class="institution">Carleton College</span>
+</div></header>
+<main id="main">
+<section class="hero" aria-labelledby="project-title">
+  <div class="court-lines" aria-hidden="true"><i></i><b></b></div>
+  <div class="wrap hero-inner">
+    <div class="intro">
+      <div class="eyebrow hero-kicker"><span class="rule"></span>Computer Science Comps <span class="slash">/</span> 2026–27</div>
+      <h1 id="project-title">Tennis Ball<br><em>Tracking</em><span class="title-dot">.</span></h1>
+      <p>Tracking a tennis ball in match footage is challenging because the ball is small, moves quickly, and can become blurred or hidden behind players.</p>
+      <div class="hero-links"><a class="cta" href="https://youtube.com/shorts/wWdIpkAO_1I?feature=share" target="_blank" rel="noopener"><span class="play-icon" aria-hidden="true"></span>Watch model comparison</a><a class="text-link" href="#results">View results</a></div>
+    </div>
+    <figure class="viewer" aria-labelledby="clip-label">
+      <div class="viewer-top"><span class="eyebrow viewer-name" id="clip-label"><span class="viewfinder" aria-hidden="true"></span> Rally footage</span>
+        <div class="switch js-only" role="group" aria-label="Footage view">
+          <button type="button" data-mode="detection" aria-pressed="true">Detection</button><button type="button" data-mode="original" aria-pressed="false">Original</button>
+        </div>
+      </div>
+      <div class="frame">
+        <video id="rally" controls muted playsinline preload="auto" poster="assets/annotated.webp" aria-label="Paris rally with YOLO26 detection boxes" src="assets/rally.mp4"></video>
+      </div>
+      <div class="transport js-only">
+        <button id="play" type="button" aria-label="Play rally" title="Play rally"><span class="play-icon" aria-hidden="true"></span></button>
+        <input id="seek" aria-label="Rally position in seconds" type="range" min="0" max="10" step="0.033333" value="4">
+        <span class="time"><span id="elapsed">0:04</span> / 0:10</span>
+      </div>
+      <figcaption><span>RacketVision <span class="separator">/</span> Match 10</span><span id="clip-mode">YOLO26 overlay</span></figcaption>
+    </figure>
+  </div>
+</section>
+
+<div class="facts"><div class="wrap facts-inner">
+  <div class="dataset-name"><span class="eyebrow">Dataset</span><a href="https://huggingface.co/datasets/linfeng302/RacketVision" target="_blank" rel="noopener">RacketVision</a></div>
+  <div class="fact"><strong>431</strong><span>rally clips</span></div>
+  <div class="fact"><strong>21,544</strong><span>annotated frames</span></div>
+  <div class="fact"><strong>2,150</strong><span>test frames</span></div>
+</div></div>
+
+<section id="overview" class="section wrap research-overview" aria-labelledby="overview-title">
+  <div>
+    <h2 id="overview-title">Project overview</h2>
+    <a class="repository-link" href="https://github.com/jo-bremer/comps-26-racketeers">View project on GitHub</a>
+  </div>
+  <div class="overview-text">
+    <p>We study how deep learning models can track a tennis ball from a single broadcast video and compare three model architectures trained on the same dataset. Using the tennis subset of the RacketVision dataset and its official data split, we fine-tuned YOLO26 and RTMDet, and trained TrackNetV5.</p>
+    <p>YOLO26x, fine-tuned at a 1,280-pixel input resolution, has the highest precision, recall, and mAP50. We observed that the remaining failures mainly involve motion blur in fast moving balls and stationary balls lying on the side of the court.</p>
+  </div>
+</section>
+
+<section id="results" class="section wrap">
+  <div class="eyebrow section-kicker"><span class="rule"></span>Results</div>
+  <div class="section-heading"><h2>Model performance</h2><span class="quiet meta">RacketVision tennis &nbsp;/&nbsp; Held-out test split</span></div>
+  <div class="table-container">
+    <table id="results-table">
+      <caption class="sr-only">Results on 2,150 test frames across 43 clips. Higher precision, recall, and mAP50 are better. Lower mean distance error is better.</caption>
+      <thead><tr><th scope="col">Model</th><th scope="col">Precision <small>%</small></th><th scope="col">Recall <small>%</small></th><th scope="col">mAP50 <small>%</small></th><th scope="col">MDE <small>px</small></th></tr></thead>
+      <tbody>
+        <tr class="lead"><th scope="row">YOLO26x<span>20 × 20 px evaluation boxes</span></th><td data-metric="Precision %">93.33</td><td data-metric="Recall %">88.39</td><td data-metric="mAP50 %">93.20</td><td data-metric="MDE px">6.549</td></tr>
+        <tr><th scope="row">TrackNetV5</th><td data-metric="Precision %">73.9</td><td data-metric="Recall %">70.8</td><td data-metric="mAP50 %">66.8</td><td data-metric="MDE px">12.44</td></tr>
+        <tr><th scope="row">RTMDet-Tiny</th><td data-metric="Precision %">85.8</td><td data-metric="Recall %">65.4</td><td data-metric="mAP50 %">71.8</td><td data-metric="MDE px">15.69</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="result-notes"><details class="metrics"><summary>How to read the metrics</summary>
+    <dl><div><dt>Precision</dt><dd>Of all the balls the model reported, the share of true predictions.</dd></div>
+    <div><dt>Recall</dt><dd>Of all the real balls in the frames, the share the model found.</dd></div>
+    <div><dt>mAP50</dt><dd>Mean average precision at an intersection-over-union threshold of 0.50. Higher is better.</dd></div>
+    <div><dt>Mean distance error (MDE)</dt><dd>Average distance between the predicted ball center and the true center in the original-resolution pixels. Lower is better.</dd></div></dl>
+  </details><a href="assets/test-results.csv" download class="csv"><span class="download-icon" aria-hidden="true">↓</span>Download results <small>CSV</small></a></div>
+</section>
+
+<section id="method" class="method"><div class="section wrap">
+  <div class="eyebrow section-kicker"><span class="rule"></span>Method</div>
+  <div class="section-heading"><h2>Model architectures</h2></div>
+  <div class="models">
+    <article><div class="diagram box-diagram" aria-hidden="true"><div class="input-frame"><i></i></div><span class="wire"></span><div class="target-box"></div></div>
+    <div class="eyebrow">Single frame · Bounding box</div><h3>YOLO26x</h3><p>Images are fed into a CNN backbone, then neck networks combine features output from the backbone. A dual-head structure is then used to predict object classes and bounding boxes.</p><a href="https://arxiv.org/abs/2606.03748">YOLO26 paper</a></article>
+    <article><div class="diagram heat-diagram" aria-hidden="true"><div class="stacked-frames"><i></i><i></i><i></i></div><span class="wire"></span><div class="heatmap"></div></div>
+    <div class="eyebrow">Three frames · Heatmap</div><h3>TrackNetV5</h3><p>Features are extracted using an encoder-decoder structure, which consists of a convolutional neural network (CNN) and a deconvolutional neural network. Samples three frames at a time to determine where motion is occurring and the direction of it.</p><a href="https://arxiv.org/abs/2512.02789">TrackNetV5 paper</a></article>
+    <article><div class="diagram pyramid-diagram" aria-hidden="true"><div class="pyramid"><i></i><i></i><i></i></div><span class="wire"></span><div class="target-box"></div></div>
+    <div class="eyebrow">Single frame · Bounding box</div><h3>RTMDet-Tiny</h3><p>The model uses a convolutional neural network to extract visual features from an image and combines features at different scales to recognize objects of various sizes. Its detection head then predicts bounding boxes and confidence scores for possible tennis balls.</p><a href="https://arxiv.org/abs/2212.07784">RTMDet paper</a></article>
+  </div>
+  <div class="prep">
+    <div><h3>Detector training labels</h3><p>Tennis footage was converted into labeled frames. Each ball annotation was represented by a 15 × 15-pixel bounding box in the original image coordinates.</p><a href="https://arxiv.org/abs/2511.17045">RacketVision paper</a></div>
+    <table class="split-table"><caption class="sr-only">RacketVision tennis splits</caption><thead><tr><th>Split</th><th>Clips</th><th>Annotated frames</th></tr></thead>
+      <tbody><tr><th scope="row">Training</th><td>350</td><td>17,494</td></tr><tr><th scope="row">Validation</th><td>38</td><td>1,900</td></tr><tr><th scope="row">Test</th><td>43</td><td>2,150</td></tr></tbody></table>
+  </div>
+  <div class="failure">
+    <figure><img src="assets/stationary.webp" width="879" height="494" alt="A cyan sports ball detection beside the umpire’s chair during a doubles match." loading="lazy"><figcaption>Courtside detection · Andrew Gong’s poster</figcaption></figure>
+    <div><div class="eyebrow section-kicker"><span class="rule"></span>Error analysis</div><h3>Stationary balls</h3><blockquote>“We observed that the remaining failures mainly involve motion blurs in fast moving ball and stationary ball lying on the side of the court.”</blockquote><p class="quote-credit">From the team’s write-up</p></div>
+  </div>
+
+</div></section>
+
+<section id="posters" class="section wrap">
+  <div class="eyebrow section-kicker"><span class="rule"></span>Project materials</div>
+  <div class="section-heading"><h2>Team posters</h2><span class="quiet meta">Comps Gala &nbsp;/&nbsp; November 2026</span></div>
+  <div class="posters">
+    <a class="poster" href="assets/posters/bremer.pdf"><div class="thumb"><img src="assets/posters/bremer.webp" loading="lazy" width="960" height="720" alt=""></div><div class="poster-name"><h3>Jo Bremer</h3><span>PDF</span></div><p>TrackNetV5 and heatmap tracking</p></a>
+    <a class="poster" href="assets/posters/gong.pdf"><div class="thumb"><img src="assets/posters/gong.webp" loading="lazy" width="960" height="720" alt=""></div><div class="poster-name"><h3>Andrew Gong</h3><span>PDF</span></div><p>YOLO26x resolution experiments</p></a>
+    <a class="poster" href="assets/posters/hall.pdf"><div class="thumb"><img src="assets/posters/hall.webp" loading="lazy" width="960" height="720" alt=""></div><div class="poster-name"><h3>Matthew Hall</h3><span>PDF</span></div><p>YOLO26 architecture and workflow</p></a>
+    <a class="poster" href="assets/posters/kaur.pdf"><div class="thumb"><img src="assets/posters/kaur.webp" loading="lazy" width="960" height="720" alt=""></div><div class="poster-name"><h3>Harshdeep Kaur</h3><span>PDF</span></div><p>RTMDet-Tiny implementation</p></a>
+  </div>
+  <div class="paper-row">
+    <h3>Team paper</h3>
+    <p>
+      <a href="assets/Group%20Paper.pdf" target="_blank" rel="noopener">Read team paper (PDF)</a>
+      &middot;
+      <a href="assets/Group%20Paper.pdf" download="Group Paper.pdf">Download PDF</a>
+    </p>
+  </div>
+  <p class="archive-note">The posters document earlier experiments. The results table reports the team’s final test comparison.</p>
+</section>
+</main>
+<footer><div class="wrap foot">
+  <div><a class="brand" href="#top"><span class="ball-mark" aria-hidden="true"></span>TennisVision</a><p>Department of Computer Science · Carleton College</p></div>
+  <div class="credits"><p>Jo Bremer, Andrew Gong, Matthew Hall, and Harshdeep Kaur</p><p>Faculty advisor · Layla Oesper</p><details><summary>Site credits</summary><p>Research text excerpted from the team’s posters and write-up. Rally footage from the RacketVision tennis dataset, with the team’s YOLO26 visualization. Website implementation and verification assisted by OpenAI Codex.</p></details></div>
+</div></footer>
+</body></html>
