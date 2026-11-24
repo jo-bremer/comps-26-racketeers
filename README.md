@@ -50,7 +50,7 @@ Our paper compared each ball tracking model on recision, recall, mAP@50, and mea
 | --- | ---: | ---: | ---: | ---: |
 | YOLO26x | 93.3% | 88.4% | 93.2% | 6.55 |
 | TrackNetV5 | 73.9% | 70.8% | 66.8% | 12.44 |
-| RTMDet-Tiny (960×960) | 85.8% | 65.4% | 71.8% | 15.69 |
+| RTMDet-Tiny | 85.8% | 65.4% | 71.8% | 15.69 |
 
 
 ## Suggested workflow
