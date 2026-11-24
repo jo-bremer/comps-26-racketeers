@@ -5,6 +5,8 @@ import sys
 import json
 
 def process_label_csv_for_tracknet(csv_path, output_path, img_format="jpg"):
+    """Processes RacketVision format to Tracknet format & adds filepaths"""
+    
     df = pandas.read_csv(csv_path)
     
     df = df.rename(columns={"Visibility":"visibility", "X":"x-coordinate", "Y":"y-coordinate", "Frame":"file name"})
@@ -14,18 +16,24 @@ def process_label_csv_for_tracknet(csv_path, output_path, img_format="jpg"):
     df.to_csv(output_path, index=False)
 
 def process_annotations_for_tracknet(path, videos_path):
+    """Processes all annotations in folders"""
+    
     for folder in tqdm(os.scandir(path)):
         if folder.is_dir():
             for file in tqdm(os.scandir(folder.path + "/000")):
                 process_label_csv_for_tracknet(file.path, videos_path+f"/_{folder.name}_000.mp4/Label.csv")
 
 def combine_csvs(csv_1, csv_2):
+    """Combines two CSVs"""
+    
     df_1 = pandas.read_csv(csv_1)
     df_2 = pandas.read_csv(csv_2)
     df_con = pandas.concat([df_1, df_2], )
     df_con.to_csv("out.csv", index=False)
     
 def get_split(csv_in, json_split):
+    """Reads the entries in CSV_IN corresponding ONLY to matches present in the JSON_split file"""
+    
     with open(json_split, "r") as file:
         raw_data = json.load(file)
     data = ""

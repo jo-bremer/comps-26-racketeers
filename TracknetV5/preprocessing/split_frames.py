@@ -6,6 +6,8 @@ import sys
 
 
 def split_frames_from_video(video_path, output_path, frame_size=(512, 288), img_format='jpg'):
+    """Seperates input videos into individual frames"""
+    
     os.makedirs(output_path, exist_ok=True)
     cap = cv2.VideoCapture(video_path)
 
@@ -24,6 +26,8 @@ def split_frames_from_video(video_path, output_path, frame_size=(512, 288), img_
     return frame_i
 
 def split_frames_from_videos(videos_path, output_path, frame_size=(512, 288), img_format='jpg'):
+    """Splits frames from all videos in the provided path"""
+    
     for i, video in tqdm(enumerate(os.scandir(videos_path))):
         video_output_path = os.path.join(output_path, "_"+os.path.basename(video))
         split_frames_from_video(video, video_output_path, frame_size=frame_size)
