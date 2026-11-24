@@ -1,7 +1,7 @@
 # USING A BOILERPLATE PYTHON GITIGNORE
 *.csv
 *.jpg
-*.txt
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -36,10 +36,6 @@ MANIFEST
 #   before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
 
 # Unit test / coverage reports
 htmlcov/
@@ -96,5 +92,3 @@ tempCodeRunnerFile.py
 preprocessing/videos
 preprocessing/videos_out
 preprocessing/out
-
-note.txt
