@@ -44,7 +44,7 @@ python3 -m pip install -r requirements.txt
 Please refer the README's in each models folder to see what the files do and how they are configured. 
 
 ## Results overview
-Our paper compared each ball tracking model on recision, recall, mAP@50, and mean distance error (MDE). The figures below described the results seen from each model after finetuning and training each model.. 
+Our paper compared each ball tracking model on recision, recall, mAP@50, and mean distance error (MDE). The figures below described the results seen from each model after finetuning and training each model.
 
 | Model | Precision | Recall | mAP@50 | MDE (pixels) |
 | --- | ---: | ---: | ---: | ---: |
