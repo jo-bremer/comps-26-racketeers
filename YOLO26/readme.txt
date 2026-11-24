@@ -57,3 +57,11 @@ The test images are ready on the project server. Run this from the YOLO26 folder
 
 Use your own best.pt path after --weights. Choose corresponding image size after --imgsz.
 To see your scores, open metrics.csv in the new folder under runs/evaluation/.
+
+6.examine_video_performance.py
+
+ This script runs fine-tuned YOLO model on one RacketVision tennis clip and saves a copy 
+of the video with detection boxes drawn on it. Set best_path to the target wieghts and 
+match_video to the clip that you want to test. For a fair evaluation, only use clips from 
+test split listed in test.json. The script keeps detections of tennis ball with 0.4+ confidence.
+ The annnotated video is saved to Ultralytics' default output folder.
